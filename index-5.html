@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>PedidosApp – Distribuciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #242736; --border: #2e3144;
+    --accent: #f97316; --accent2: #fb923c; --text: #f0f2f8; --text2: #9da3b8;
+    --text3: #5c6280; --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+    --radius: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); overflow: hidden; }
+  #app { display: flex; flex-direction: column; height: 100vh; max-width: 480px; margin: 0 auto; position: relative; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 18px 10px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .header h1 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.3px; }
+  .header .subtitle { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .sync-indicator { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+  .sync-ok { background: rgba(34,197,94,0.15); color: var(--green); }
+  .sync-loading { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .sync-error { background: rgba(239,68,68,0.15); color: var(--red); }
+  .main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; padding-bottom: 80px; }
+  .main::-webkit-scrollbar { width: 3px; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 100; }
+  .nav-btn { flex: 1; padding: 10px 4px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 500; transition: color 0.2s; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn svg { width: 22px; height: 22px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { background: var(--accent2); transform: scale(0.97); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:active { transform: scale(0.97); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-success { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+  .btn-full { width: 100%; }
+  .input-group { margin-bottom: 12px; }
+  .input-label { font-size: 12px; color: var(--text2); font-weight: 500; margin-bottom: 5px; display: block; }
+  .input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 13px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .input:focus { border-color: var(--accent); }
+  .input::placeholder { color: var(--text3); }
+  select.input { appearance: none; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-orange { background: rgba(249,115,22,0.15); color: var(--accent); }
+  .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-gray { background: var(--surface2); color: var(--text3); }
+  .list-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .list-item:last-child { border-bottom: none; }
+  .list-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .search-wrap { position: relative; margin-bottom: 14px; }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); width: 16px; height: 16px; }
+  .search-input { padding-left: 36px !important; }
+  .pedido-item { background: var(--surface2); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .pedido-item-info { flex: 1; min-width: 0; }
+  .pedido-item-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pedido-item-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .qty-ctrl { display: flex; align-items: center; gap: 8px; }
+  .qty-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .qty-val { font-size: 14px; font-weight: 700; min-width: 24px; text-align: center; }
+  .total-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .total-row:last-child { margin-bottom: 0; font-size: 17px; font-weight: 700; color: var(--text); }
+  .total-row.big { padding-top: 8px; border-top: 1px solid var(--border); }
+  .steps { display: flex; gap: 6px; margin-bottom: 16px; }
+  .step { flex: 1; height: 4px; border-radius: 4px; background: var(--border); transition: background 0.3s; }
+  .step.done { background: var(--accent); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: flex-end; }
+  .modal { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; margin: 0 auto; padding: 20px; max-height: 85vh; overflow-y: auto; }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 16px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+  .empty { text-align: center; padding: 40px 20px; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+  .empty-text { font-size: 13px; color: var(--text3); }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--green); color: #fff; padding: 10px 20px; border-radius: 40px; font-size: 13px; font-weight: 600; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 16px; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media print {
+    body { background: white !important; color: black !important; font-family: 'Arial', sans-serif; overflow: visible; }
+    #app { display: none !important; }
+    #loading-screen { display: none !important; }
+    .boleta-print { display: block !important; padding: 20px; max-width: 680px; margin: 0 auto; }
+    * { color: black !important; background: white !important; border-color: #ccc !important; }
+  }
+  .boleta-print { display: none; }
+  @media print {
+    .boleta-print { display: block; font-family: Arial, sans-serif; font-size: 12px; }
+    .boleta-print table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .boleta-print th { background: #eee; padding: 6px 8px; text-align: left; border: 1px solid #ccc; font-size: 11px; }
+    .boleta-print td { padding: 5px 8px; border: 1px solid #ddd; font-size: 11px; }
+    .boleta-print .bh { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .boleta-print .bh h2 { font-size: 20px; margin-bottom: 4px; }
+    .boleta-print .bh p { font-size: 11px; color: #444; }
+    .boleta-print .warning { text-align: center; font-size: 11px; font-weight: bold; border: 1px dashed #999; padding: 5px; margin: 8px 0; }
+    .boleta-print .totals { float: right; width: 220px; margin-top: 8px; }
+    .boleta-print .totals td { border: none; padding: 3px 6px; }
+    .boleta-print .totals .grand { font-weight: bold; font-size: 14px; border-top: 2px solid #000; }
+    .boleta-print .firma { margin-top: 50px; display: flex; justify-content: space-around; }
+    .boleta-print .firma div { text-align: center; border-top: 1px solid #000; padding-top: 4px; width: 160px; font-size: 10px; }
+    .boleta-print .footer-note { text-align: center; margin-top: 20px; font-size: 10px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+    .clearfix::after { content: ''; display: table; clear: both; }
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .anim-slide { animation: slideUp 0.25s ease; }
+  .anim-fade { animation: fadeIn 0.2s ease; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .row { display: flex; gap: 10px; }
+  .row .input-group { flex: 1; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen" class="loading-screen">
+  <div class="spinner"></div>
+  <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text2)">Sincronizando datos...</div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div>
+      <h1 id="header-empresa">📦 PedidosApp</h1>
+      <div class="subtitle" id="header-vendedor">Cargando...</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="sync-status" class="sync-indicator sync-ok">● Sync</span>
+      <span id="header-date" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+  </div>
+  <div class="main" id="main-content"></div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="goTo('inicio')" id="nav-inicio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio
+    </button>
+    <button class="nav-btn" onclick="goTo('pedido')" id="nav-pedido">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>Pedido
+    </button>
+    <button class="nav-btn" onclick="goTo('historial')" id="nav-historial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Historial
+    </button>
+    <button class="nav-btn" onclick="goTo('catalogo')" id="nav-catalogo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Catálogo
+    </button>
+    <button class="nav-btn" onclick="goTo('ajustes')" id="nav-ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Ajustes
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="boleta-print" id="boleta-print-area"></div>
+
+<script>
+// ===================== JSONBIN CONFIG =====================
+const JSONBIN_API_KEY = '$2a$10$3aSSgeM4fWgVOn2U2Nue6uZ66XAZ2HcNbt4RJM..Ocz3ArWH2uE4G';
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
+let BIN_ID = '6a174faa21f9ee59d292b3d1';
+
+async function syncLoad() {
+  setSyncStatus('loading');
+  try {
+    if (!BIN_ID) {
+      // Crear bin nuevo con datos default
+      const defaultData = getDefaultData();
+      const res = await fetch(`${JSONBIN_BASE}/b`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY, 'X-Bin-Name': 'pedidos-app' },
+        body: JSON.stringify(defaultData)
+      });
+      const data = await res.json();
+      BIN_ID = data.metadata.id;
+      localStorage.setItem('jsonbin_bin_id', BIN_ID);
+      state = { ...state, ...defaultData };
+    } else {
+      const res = await fetch(`${JSONBIN_BASE}/b/${BIN_ID}/latest`, {
+        headers: { 'X-Master-Key': JSONBIN_API_KEY }
+      });
+      const data = await res.json();
+      const d = data.record;
+      state.config = d.config || state.config;
+      state.productos = d.productos || state.productos;
+      state.clientes = d.clientes || state.clientes;
+      state.pedidos = d.pedidos || state.pedidos;
+    }
+    localStorage.setItem('cache', JSON.stringify({ config: state.config, productos: state.productos, clientes: state.clientes, pedidos: state.pedidos }));
+    setSyncStatus('ok');
+  } catch(e) {
+    console.error(e);
+    // Usar cache local si hay
+    const cache = localStorage.getItem('cache');
+    if (cache) {
+      const d = JSON.parse(cache);
+      state.config = d.config || state.config;
+      state.productos = d.productos || state.productos;
+      state.clientes = d.clientes || state.clientes;
+      state.pedidos = d.pedidos || state.pedidos;
+    }
+    setSyncStatus('error');
+    showToast('⚠️ Sin conexión, usando datos locales', 'var(--yellow)');
+  }
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  render();
+}
+
+async function syncSave() {
+  if (!BIN_ID) return;
+  setSyncStatus('loading');
+  const payload = { config: state.config, productos: state.productos, clientes: state.clientes, pedidos: state.pedidos };
+  localStorage.setItem('cache', JSON.stringify(payload));
+  try {
+    await fetch(`${JSONBIN_BASE}/b/${BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify(payload)
+    });
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+    showToast('⚠️ No se pudo sincronizar', 'var(--yellow)');
+  }
+}
+
+function setSyncStatus(s) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (s === 'ok') { el.className = 'sync-indicator sync-ok'; el.textContent = '● Sync'; }
+  else if (s === 'loading') { el.className = 'sync-indicator sync-loading'; el.textContent = '↻ Sync...'; }
+  else { el.className = 'sync-indicator sync-error'; el.textContent = '✕ Sin sync'; }
+}
+
+function getDefaultData() {
+  return {
+    config: { empresa: 'Distribuciones ejemplo', ruc: '20123456789', direccion: 'Av. Principal 123', telefono: '999 888 777', vendedor: 'Tu Nombre', pieBoleta: 'Documento de uso interno. No válido como comprobante tributario.' },
+    productos: [
+      { id: 'P001', nombre: 'Arroz Extra 5kg', unidad: 'bolsa', precio: 14.50, categoria: 'Granos' },
+      { id: 'P002', nombre: 'Aceite Vegetal 1L', unidad: 'unidad', precio: 8.20, categoria: 'Aceites' },
+      { id: 'P003', nombre: 'Azúcar Rubia 1kg', unidad: 'unidad', precio: 3.80, categoria: 'Granos' },
+      { id: 'P004', nombre: 'Fideos Spaghetti 500g', unidad: 'paquete', precio: 2.90, categoria: 'Pastas' },
+      { id: 'P005', nombre: 'Harina Preparada 1kg', unidad: 'unidad', precio: 4.10, categoria: 'Harinas' },
+      { id: 'P006', nombre: 'Sal de Mesa 1kg', unidad: 'unidad', precio: 1.50, categoria: 'Condimentos' },
+      { id: 'P007', nombre: 'Leche Evaporada 400g', unidad: 'lata', precio: 3.60, categoria: 'Lácteos' },
+      { id: 'P008', nombre: 'Atún en Agua 170g', unidad: 'lata', precio: 4.80, categoria: 'Conservas' },
+      { id: 'P009', nombre: 'Detergente 500g', unidad: 'bolsa', precio: 3.20, categoria: 'Limpieza' },
+      { id: 'P010', nombre: 'Jabón Lavandería x3', unidad: 'pack', precio: 5.50, categoria: 'Limpieza' },
+    ],
+    clientes: [
+      { id: 'C001', nombre: 'Bodega El Progreso', direccion: 'Jr. Los Olivos 456', telefono: '987654321', ruc: '10234567891', notas: '' },
+      { id: 'C002', nombre: 'Minimarket Josefina', direccion: 'Av. Las Flores 789', telefono: '976543210', ruc: '10987654321', notas: 'Pago al contado' },
+      { id: 'C003', nombre: 'Bodega San Martín', direccion: 'Ca. Los Pinos 321', telefono: '965432109', ruc: '', notas: 'Entrega los martes' },
+    ],
+    pedidos: []
+  };
+}
+
+// ===================== STATE =====================
+let state = {
+  page: 'inicio',
+  config: { empresa: 'PedidosApp', ruc: '', direccion: '', telefono: '', vendedor: '', pieBoleta: '' },
+  productos: [], clientes: [], pedidos: [],
+  pedidoActual: { cliente: null, items: [], descuento: 0, notas: '' },
+  pedidoStep: 1, search: ''
+};
+
+function save() { syncSave(); }
+function nextPedidoId() {
+  const nums = state.pedidos.map(p => parseInt(p.id.split('-')[1] || 0));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return 'PED-' + String(max + 1).padStart(4, '0');
+}
+function fmt(n) { return 'S/ ' + parseFloat(n).toFixed(2); }
+function fmtDate(d) { return new Date(d).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+function pedidoTotal(p) { return p.items.reduce((a, i) => a + i.cantidad * i.precio, 0) - (p.descuento || 0); }
+function pedidoSubtotal(p) { return p.items.reduce((a, i) => a + i.cantidad * i.precio, 0); }
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color || 'var(--green)';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function goTo(page) {
+  state.page = page; state.search = '';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-' + page);
+  if (nb) nb.classList.add('active');
+  render();
+}
+
+function updateHeader() {
+  const h = document.getElementById('header-empresa');
+  const v = document.getElementById('header-vendedor');
+  if (h) h.textContent = '📦 ' + state.config.empresa;
+  if (v) v.textContent = state.config.vendedor;
+  const d = document.getElementById('header-date');
+  if (d) d.textContent = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+}
+
+function render() {
+  updateHeader();
+  const m = document.getElementById('main-content');
+  if (!m) return;
+  m.innerHTML = '';
+  if (state.page === 'inicio') m.innerHTML = renderInicio();
+  else if (state.page === 'pedido') m.innerHTML = renderPedido();
+  else if (state.page === 'historial') m.innerHTML = renderHistorial();
+  else if (state.page === 'catalogo') m.innerHTML = renderCatalogo();
+  else if (state.page === 'ajustes') m.innerHTML = renderAjustes();
+}
+
+function badgeEstado(e) {
+  if (e === 'pendiente') return '<span class="badge badge-orange">Pendiente</span>';
+  if (e === 'entregado') return '<span class="badge badge-green">Entregado</span>';
+  if (e === 'anulado') return '<span class="badge badge-red">Anulado</span>';
+  return '';
+}
+
+// ---- INICIO ----
+function renderInicio() {
+  const hoy = new Date().toISOString().slice(0,10);
+  const totalHoy = state.pedidos.filter(p => p.fecha.startsWith(hoy) && p.estado !== 'anulado').reduce((a,p) => a + pedidoTotal(p), 0);
+  const pendientes = state.pedidos.filter(p => p.estado === 'pendiente').length;
+  const totalPedidos = state.pedidos.filter(p => p.estado !== 'anulado').length;
+  const ultimos = [...state.pedidos].reverse().slice(0, 4);
+  return `<div class="anim-slide">
+    <div style="margin-bottom:18px">
+      <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800">Bienvenido 👋</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:2px">${new Date().toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long'})}</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val">${fmt(totalHoy)}</div><div class="stat-label">Ventas de hoy</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--yellow)">${pendientes}</div><div class="stat-label">Pendientes</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--green)">${totalPedidos}</div><div class="stat-label">Total pedidos</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:#60a5fa">${state.clientes.length}</div><div class="stat-label">Clientes</div></div>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:14px;font-size:16px;padding:14px" onclick="state.pedidoActual={cliente:null,items:[],descuento:0,notas:''};state.pedidoStep=1;goTo('pedido')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+      Nuevo Pedido
+    </button>
+    <div class="card">
+      <div class="card-title">Últimos pedidos</div>
+      ${ultimos.length === 0 ? '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin pedidos aún</div></div>' :
+        ultimos.map(p => `<div class="list-item" onclick="verPedido('${p.id}')" style="cursor:pointer">
+          <div class="list-icon" style="background:var(--surface2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${p.cliente.nombre}</div><div style="font-size:11px;color:var(--text3)">${p.id} · ${fmtDate(p.fecha)}</div></div>
+          <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:var(--accent)">${fmt(pedidoTotal(p))}</div>${badgeEstado(p.estado)}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ---- PEDIDO ----
+function renderPedido() {
+  const s = state.pedidoStep;
+  const steps = `<div class="steps"><div class="step ${s>=1?'done':''}"></div><div class="step ${s>=2?'done':''}"></div><div class="step ${s>=3?'done':''}"></div><div class="step ${s>=4?'done':''}"></div></div>`;
+  if (s===1) return steps + renderPedidoStep1();
+  if (s===2) return steps + renderPedidoStep2();
+  if (s===3) return steps + renderPedidoStep3();
+  if (s===4) return steps + renderPedidoStep4();
+  return '';
+}
+
+function renderPedidoStep1() {
+  const q = (state.search||'').toLowerCase();
+  const list = state.clientes.filter(c => !q || c.nombre.toLowerCase().includes(q));
+  return `<div class="anim-slide">
+    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px">Paso 1</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:14px">Seleccionar cliente</div>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="input search-input" id="search-cli" placeholder="Buscar cliente..." value="${state.search||''}" oninput="state.search=this.value;renderInPlace()" autocomplete="off"/>
+    </div>
+    <button class="btn btn-secondary btn-full" style="margin-bottom:12px" onclick="openModalClienteRapido()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Cliente nuevo rápido
+    </button>
+    ${list.length === 0 ? '<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Sin resultados</div></div>' :
+      list.map(c => `<div class="list-item" style="cursor:pointer;border-radius:10px;padding:12px;background:var(--surface);margin-bottom:8px;border:1px solid var(--border)" onclick="selCliente('${c.id}')">
+        <div class="list-icon" style="background:var(--surface2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:600">${c.nombre}</div><div style="font-size:11px;color:var(--text3)">${c.direccion}</div></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderPedidoStep2() {
+  const q = (state.search||'').toLowerCase();
+  const lista = state.productos.filter(p => !q || p.nombre.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  const items = state.pedidoActual.items;
+  return `<div class="anim-slide">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <button onclick="state.pedidoStep=1;state.search='';render()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;padding:0">←</button>
+      <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800">Paso 2</div><div style="font-size:11px;color:var(--text3)">Cliente: ${state.pedidoActual.cliente?.nombre}</div></div>
+    </div>
+    <div style="margin:12px 0 10px;font-size:12px;color:var(--text2);font-weight:600">Agregar productos</div>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="input search-input" id="search-prod" placeholder="Buscar producto..." value="${state.search||''}" oninput="state.search=this.value;renderInPlace()" autocomplete="off"/>
+    </div>
+    <div style="max-height:220px;overflow-y:auto;margin-bottom:14px">
+      ${lista.map(p => {
+        const inPedido = items.find(i => i.prodId === p.id);
+        return `<div class="list-item" style="padding:10px 12px;background:var(--surface);border-radius:10px;margin-bottom:6px;border:1px solid ${inPedido?'var(--accent)':'var(--border)'}">
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.nombre}</div><div style="font-size:11px;color:var(--text3)">${p.id} · ${p.unidad} · ${fmt(p.precio)}</div></div>
+          <button class="btn btn-sm ${inPedido?'btn-success':'btn-primary'}" onclick="agregarProd('${p.id}')">${inPedido?'✓ Agreg.':'+ Agregar'}</button>
+        </div>`;
+      }).join('')}
+    </div>
+    ${items.length > 0 ? `
+    <div class="card" style="margin-bottom:80px">
+      <div class="card-title">Pedido (${items.length} ítem${items.length!==1?'s':''})</div>
+      ${items.map(i => `<div class="pedido-item">
+        <div class="pedido-item-info"><div class="pedido-item-name">${i.nombre}</div><div class="pedido-item-meta">${fmt(i.precio)} x ${i.cantidad} = ${fmt(i.precio*i.cantidad)}</div></div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="cambiarQty('${i.prodId}',-1)">−</button>
+          <span class="qty-val">${i.cantidad}</span>
+          <button class="qty-btn" onclick="cambiarQty('${i.prodId}',1)">+</button>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div style="position:fixed;bottom:64px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:10px 16px;background:var(--bg);border-top:1px solid var(--border);z-index:99">
+      <button class="btn btn-primary btn-full" style="padding:14px;font-size:15px" onclick="state.pedidoStep=3;state.search='';render()">
+        Continuar → ${fmt(items.reduce((a,i)=>a+i.cantidad*i.precio,0))}
+      </button>
+    </div>
+    ` : '<div style="text-align:center;color:var(--text3);font-size:13px;padding:10px">Agregá al menos un producto</div>'}
+  </div>`;
+}
+
+function renderPedidoStep3() {
+  const p = state.pedidoActual;
+  const sub = pedidoSubtotal(p);
+  const total = sub - (p.descuento || 0);
+  return `<div class="anim-slide">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button onclick="state.pedidoStep=2;render()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;padding:0">←</button>
+      <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800">Paso 3</div><div style="font-size:11px;color:var(--text3)">Resumen y confirmación</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:8px">CLIENTE</div>
+      <div style="font-size:15px;font-weight:700">${p.cliente.nombre}</div>
+      <div style="font-size:12px;color:var(--text3)">${p.cliente.direccion||''}</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">Productos</div>
+      ${p.items.map(i => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="flex:1">${i.nombre} <span style="color:var(--text3)">x${i.cantidad}</span></span>
+        <span style="font-weight:600;color:var(--accent)">${fmt(i.precio*i.cantidad)}</span>
+      </div>`).join('')}
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">Descuento y notas</div>
+      <div class="input-group"><label class="input-label">Descuento (S/)</label><input class="input" type="number" min="0" step="0.01" value="${p.descuento||0}" id="inp-descuento" placeholder="0.00"/></div>
+      <div class="input-group"><label class="input-label">Notas del pedido</label><textarea class="input" rows="3" id="inp-notas" placeholder="Ej: Entregar el martes...">${p.notas||''}</textarea></div>
+    </div>
+    <div class="total-bar" style="margin-bottom:90px">
+      <div class="total-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+      <div class="total-row"><span>Descuento</span><span>−${fmt(p.descuento||0)}</span></div>
+      <div class="total-row big"><span>TOTAL</span><span>${fmt(total)}</span></div>
+    </div>
+    <div style="position:fixed;bottom:64px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:10px 16px;background:var(--bg);border-top:1px solid var(--border);z-index:99"><button class="btn btn-primary btn-full" style="padding:14px;font-size:16px" onclick="confirmarPedido()">✅ Confirmar Pedido — ${fmt(total)}</button></div>
+  </div>`;
+}
+
+function renderPedidoStep4() {
+  const ultimo = state.pedidos[state.pedidos.length - 1];
+  return `<div class="anim-slide" style="text-align:center;padding:30px 10px">
+    <div style="font-size:60px;margin-bottom:16px">🎉</div>
+    <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green);margin-bottom:8px">¡Pedido guardado!</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:6px">${ultimo?.id}</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">Cliente: ${ultimo?.cliente.nombre}</div>
+    <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent);margin-bottom:30px">${fmt(pedidoTotal(ultimo))}</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary btn-full" style="padding:14px" onclick="imprimirBoleta('${ultimo?.id}')">🖨️ Ver / Imprimir Boleta</button>
+      <button class="btn btn-secondary btn-full" onclick="state.pedidoActual={cliente:null,items:[],descuento:0,notas:''};state.pedidoStep=1;render()">+ Nuevo Pedido</button>
+      <button class="btn btn-secondary btn-full" onclick="goTo('historial')">Ver historial</button>
+    </div>
+  </div>`;
+}
+
+// ---- HISTORIAL ----
+function renderHistorial() {
+  const q = (state.search||'').toLowerCase();
+  const lista = [...state.pedidos].reverse().filter(p => !q || p.cliente.nombre.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  return `<div class="anim-slide">
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:14px">Historial</div>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="input search-input" placeholder="Buscar pedido o cliente..." value="${state.search||''}" oninput="state.search=this.value;render()" autocomplete="off"/>
+    </div>
+    ${lista.length === 0 ? '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Sin pedidos</div><div class="empty-text">Los pedidos aparecerán aquí</div></div>' :
+      lista.map(p => `<div class="card" style="cursor:pointer;margin-bottom:10px" onclick="verPedido('${p.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+          <div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700">${p.id}</div><div style="font-size:12px;color:var(--text3)">${fmtDate(p.fecha)}</div></div>
+          ${badgeEstado(p.estado)}
+        </div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${p.cliente.nombre}</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${p.items.length} producto${p.items.length!==1?'s':''}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:18px;font-weight:800;color:var(--accent)">${fmt(pedidoTotal(p))}</span>
+          <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();imprimirBoleta('${p.id}')">🖨️ Boleta</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ---- CATÁLOGO ----
+function renderCatalogo() {
+  const q = (state.search||'').toLowerCase();
+  const lista = state.productos.filter(p => !q || p.nombre.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  return `<div class="anim-slide">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800">Catálogo</div>
+      <button class="btn btn-primary btn-sm" onclick="openModalProducto(null)">+ Agregar</button>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="input search-input" placeholder="Buscar producto..." value="${state.search||''}" oninput="state.search=this.value;render()" autocomplete="off"/>
+    </div>
+    ${lista.length === 0 ? '<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Sin productos</div></div>' :
+      lista.map(p => `<div class="list-item">
+        <div class="list-icon" style="background:var(--surface2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${p.nombre}</div><div style="font-size:11px;color:var(--text3)">${p.id} · ${p.unidad} · <span style="color:var(--accent);font-weight:600">${fmt(p.precio)}</span></div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-secondary" onclick="openModalProducto('${p.id}')">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarProducto('${p.id}')">🗑️</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ---- AJUSTES ----
+function renderAjustes() {
+  const c = state.config;
+  return `<div class="anim-slide">
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:14px">Ajustes</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">Mi empresa</div>
+      <div class="input-group"><label class="input-label">Nombre de empresa</label><input class="input" id="cfg-empresa" value="${c.empresa}"/></div>
+      <div class="input-group"><label class="input-label">Vendedor</label><input class="input" id="cfg-vendedor" value="${c.vendedor}"/></div>
+      <div class="row">
+        <div class="input-group"><label class="input-label">RUC</label><input class="input" id="cfg-ruc" value="${c.ruc}"/></div>
+        <div class="input-group"><label class="input-label">Teléfono</label><input class="input" id="cfg-tel" value="${c.telefono}"/></div>
+      </div>
+      <div class="input-group"><label class="input-label">Dirección</label><input class="input" id="cfg-dir" value="${c.direccion}"/></div>
+      <div class="input-group"><label class="input-label">Texto pie de boleta</label><textarea class="input" id="cfg-pie" rows="2">${c.pieBoleta}</textarea></div>
+      <button class="btn btn-primary btn-full" onclick="guardarConfig()">💾 Guardar y sincronizar</button>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0">Clientes (${state.clientes.length})</div>
+        <button class="btn btn-primary btn-sm" onclick="openModalCliente(null)">+ Agregar</button>
+      </div>
+      ${state.clientes.map(c => `<div class="list-item">
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${c.nombre}</div><div style="font-size:11px;color:var(--text3)">${c.telefono}</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-secondary" onclick="openModalCliente('${c.id}')">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarCliente('${c.id}')">🗑️</button>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">Sincronización</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">ID de tu base de datos en la nube:<br><span style="color:var(--text2);font-family:monospace;font-size:11px">${BIN_ID||'Cargando...'}</span></div>
+      <button class="btn btn-secondary btn-full" onclick="forzarSync()">🔄 Forzar sincronización</button>
+    </div>
+  </div>`;
+}
+
+// ===================== ACTIONS =====================
+function selCliente(id) {
+  const c = state.clientes.find(x => x.id === id);
+  state.pedidoActual.cliente = { id: c.id, nombre: c.nombre, direccion: c.direccion, ruc: c.ruc };
+  state.pedidoStep = 2; state.search = ''; render();
+}
+
+function agregarProd(id) {
+  const p = state.productos.find(x => x.id === id);
+  const exists = state.pedidoActual.items.find(i => i.prodId === id);
+  if (exists) { exists.cantidad++; } else { state.pedidoActual.items.push({ prodId: p.id, nombre: p.nombre, cantidad: 1, precio: p.precio, unidad: p.unidad }); }
+  renderInPlace();
+}
+
+function cambiarQty(id, delta) {
+  const item = state.pedidoActual.items.find(i => i.prodId === id);
+  if (!item) return;
+  item.cantidad = Math.max(0, item.cantidad + delta);
+  if (item.cantidad === 0) state.pedidoActual.items = state.pedidoActual.items.filter(i => i.prodId !== id);
+  render();
+}
+
+function renderInPlace() {
+  const m = document.getElementById('main-content');
+  const steps = `<div class="steps"><div class="step ${state.pedidoStep>=1?'done':''}"></div><div class="step ${state.pedidoStep>=2?'done':''}"></div><div class="step ${state.pedidoStep>=3?'done':''}"></div><div class="step ${state.pedidoStep>=4?'done':''}"></div></div>`;
+  let html = '';
+  if (state.pedidoStep === 1) html = renderPedidoStep1();
+  if (state.pedidoStep === 2) html = renderPedidoStep2();
+  m.innerHTML = steps + html;
+  const si = document.getElementById('search-cli') || document.getElementById('search-prod');
+  if (si) { si.focus(); si.selectionStart = si.selectionEnd = si.value.length; }
+}
+
+function confirmarPedido() {
+  const notas = document.getElementById('inp-notas')?.value || '';
+  const desc = parseFloat(document.getElementById('inp-descuento')?.value) || 0;
+  state.pedidoActual.notas = notas;
+  state.pedidoActual.descuento = desc;
+  const pedido = { id: nextPedidoId(), fecha: new Date().toISOString(), cliente: state.pedidoActual.cliente, items: [...state.pedidoActual.items], descuento: desc, notas, estado: 'pendiente' };
+  state.pedidos.push(pedido);
+  save();
+  state.pedidoStep = 4; render();
+  showToast('✅ ' + pedido.id + ' guardado y sincronizado');
+}
+
+function verPedido(id) {
+  const p = state.pedidos.find(x => x.id === id);
+  if (!p) return;
+  const sub = pedidoSubtotal(p), total = pedidoTotal(p);
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay anim-fade'; overlay.id = 'modal-ver';
+  overlay.innerHTML = `<div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="modal-title" style="margin-bottom:0">${p.id}</div>${badgeEstado(p.estado)}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px">${fmtDate(p.fecha)}</div>
+    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${p.cliente.nombre}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${p.cliente.direccion||''}</div>
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+    ${p.items.map(i => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${i.nombre} × ${i.cantidad}</span><span style="color:var(--accent);font-weight:600">${fmt(i.precio*i.cantidad)}</span></div>`).join('')}
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:6px"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+    ${p.descuento ? `<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:6px"><span>Descuento</span><span>−${fmt(p.descuento)}</span></div>` : ''}
+    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:var(--accent);margin-bottom:14px"><span>TOTAL</span><span>${fmt(total)}</span></div>
+    ${p.notas ? `<div style="font-size:12px;color:var(--text3);margin-bottom:14px">📝 ${p.notas}</div>` : ''}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary btn-full" onclick="cerrarModal('modal-ver');imprimirBoleta('${p.id}')">🖨️ Imprimir Boleta</button>
+      ${p.estado === 'pendiente' ? `<button class="btn btn-success btn-full" onclick="cambiarEstado('${p.id}','entregado')">✅ Marcar Entregado</button>` : ''}
+      ${p.estado !== 'anulado' ? `<button class="btn btn-danger btn-full" onclick="cambiarEstado('${p.id}','anulado')">❌ Anular Pedido</button>` : ''}
+      <button class="btn btn-secondary btn-full" onclick="cerrarModal('modal-ver')">Cerrar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cerrarModal('modal-ver'); });
+}
+
+function cambiarEstado(id, estado) {
+  const p = state.pedidos.find(x => x.id === id);
+  if (p) { p.estado = estado; save(); cerrarModal('modal-ver'); render(); showToast('Estado actualizado'); }
+}
+
+function cerrarModal(id) { const m = document.getElementById(id); if (m) m.remove(); }
+
+function openModalProducto(id) {
+  const p = id ? state.productos.find(x => x.id === id) : null;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay anim-fade'; overlay.id = 'modal-prod';
+  overlay.innerHTML = `<div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">${p ? 'Editar producto' : 'Nuevo producto'}</div>
+    <div class="input-group"><label class="input-label">Código</label><input class="input" id="mp-id" value="${p?.id||''}" placeholder="P001"/></div>
+    <div class="input-group"><label class="input-label">Nombre</label><input class="input" id="mp-nombre" value="${p?.nombre||''}" placeholder="Nombre del producto"/></div>
+    <div class="row">
+      <div class="input-group"><label class="input-label">Unidad</label>
+        <select class="input" id="mp-unidad">${['unidad','bolsa','caja','paquete','kg','lata','pack','botella','saco','docena'].map(u => `<option value="${u}" ${p?.unidad===u?'selected':''}>${u}</option>`).join('')}</select>
+      </div>
+      <div class="input-group"><label class="input-label">Precio (S/)</label><input class="input" id="mp-precio" type="number" min="0" step="0.01" value="${p?.precio||''}" placeholder="0.00"/></div>
+    </div>
+    <div class="input-group"><label class="input-label">Categoría</label><input class="input" id="mp-cat" value="${p?.categoria||''}" placeholder="Ej: Granos"/></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="guardarProducto('${id||''}')">💾 Guardar</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="cerrarModal('modal-prod')">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cerrarModal('modal-prod'); });
+}
+
+function guardarProducto(id) {
+  const pid = document.getElementById('mp-id').value.trim();
+  const nombre = document.getElementById('mp-nombre').value.trim();
+  const precio = parseFloat(document.getElementById('mp-precio').value) || 0;
+  const unidad = document.getElementById('mp-unidad').value;
+  const cat = document.getElementById('mp-cat').value.trim();
+  if (!pid || !nombre || !precio) { showToast('Completá todos los campos', 'var(--red)'); return; }
+  if (id) {
+    const p = state.productos.find(x => x.id === id);
+    if (p) { p.id = pid; p.nombre = nombre; p.precio = precio; p.unidad = unidad; p.categoria = cat; }
+  } else {
+    if (state.productos.find(x => x.id === pid)) { showToast('Código ya existe', 'var(--red)'); return; }
+    state.productos.push({ id: pid, nombre, precio, unidad, categoria: cat });
+  }
+  save(); cerrarModal('modal-prod'); render(); showToast('Producto guardado y sincronizado ☁️');
+}
+
+function eliminarProducto(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  state.productos = state.productos.filter(p => p.id !== id);
+  save(); render(); showToast('Producto eliminado', 'var(--red)');
+}
+
+function openModalCliente(id) {
+  const c = id ? state.clientes.find(x => x.id === id) : null;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay anim-fade'; overlay.id = 'modal-cli';
+  overlay.innerHTML = `<div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">${c ? 'Editar cliente' : 'Nuevo cliente'}</div>
+    <div class="input-group"><label class="input-label">Nombre / Razón social</label><input class="input" id="mc-nombre" value="${c?.nombre||''}" placeholder="Bodega, Minimarket..."/></div>
+    <div class="input-group"><label class="input-label">Dirección</label><input class="input" id="mc-dir" value="${c?.direccion||''}" placeholder="Calle, número..."/></div>
+    <div class="row">
+      <div class="input-group"><label class="input-label">Teléfono</label><input class="input" id="mc-tel" value="${c?.telefono||''}" placeholder="999..."/></div>
+      <div class="input-group"><label class="input-label">RUC/DNI</label><input class="input" id="mc-ruc" value="${c?.ruc||''}" placeholder="Opcional"/></div>
+    </div>
+    <div class="input-group"><label class="input-label">Notas</label><input class="input" id="mc-notas" value="${c?.notas||''}" placeholder="Notas internas..."/></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="guardarCliente('${id||''}')">💾 Guardar</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="cerrarModal('modal-cli')">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cerrarModal('modal-cli'); });
+}
+
+function guardarCliente(id) {
+  const nombre = document.getElementById('mc-nombre').value.trim();
+  const dir = document.getElementById('mc-dir').value.trim();
+  const tel = document.getElementById('mc-tel').value.trim();
+  const ruc = document.getElementById('mc-ruc').value.trim();
+  const notas = document.getElementById('mc-notas').value.trim();
+  if (!nombre) { showToast('Ingresá el nombre', 'var(--red)'); return; }
+  if (id) {
+    const c = state.clientes.find(x => x.id === id);
+    if (c) { c.nombre = nombre; c.direccion = dir; c.telefono = tel; c.ruc = ruc; c.notas = notas; }
+  } else {
+    state.clientes.push({ id: 'C' + String(Date.now()).slice(-6), nombre, direccion: dir, telefono: tel, ruc, notas });
+  }
+  save(); cerrarModal('modal-cli'); render(); showToast('Cliente guardado y sincronizado ☁️');
+}
+
+function eliminarCliente(id) {
+  if (!confirm('¿Eliminar este cliente?')) return;
+  state.clientes = state.clientes.filter(c => c.id !== id);
+  save(); render(); showToast('Cliente eliminado', 'var(--red)');
+}
+
+function openModalClienteRapido() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay anim-fade'; overlay.id = 'modal-crapi';
+  overlay.innerHTML = `<div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Cliente rápido</div>
+    <div class="input-group"><label class="input-label">Nombre</label><input class="input" id="cr-nombre" placeholder="Nombre del cliente" autofocus/></div>
+    <div class="input-group"><label class="input-label">Dirección (opcional)</label><input class="input" id="cr-dir" placeholder="Dirección..."/></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="confirmarClienteRapido()">Continuar →</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="cerrarModal('modal-crapi')">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cerrarModal('modal-crapi'); });
+}
+
+function confirmarClienteRapido() {
+  const nombre = document.getElementById('cr-nombre').value.trim();
+  const dir = document.getElementById('cr-dir').value.trim();
+  if (!nombre) { showToast('Ingresá el nombre', 'var(--red)'); return; }
+  state.pedidoActual.cliente = { id: 'TEMP', nombre, direccion: dir, ruc: '' };
+  cerrarModal('modal-crapi'); state.pedidoStep = 2; state.search = ''; render();
+}
+
+function guardarConfig() {
+  state.config.empresa = document.getElementById('cfg-empresa').value.trim() || state.config.empresa;
+  state.config.vendedor = document.getElementById('cfg-vendedor').value.trim() || state.config.vendedor;
+  state.config.ruc = document.getElementById('cfg-ruc').value.trim();
+  state.config.telefono = document.getElementById('cfg-tel').value.trim();
+  state.config.direccion = document.getElementById('cfg-dir').value.trim();
+  state.config.pieBoleta = document.getElementById('cfg-pie').value.trim();
+  save(); updateHeader(); showToast('✅ Configuración guardada y sincronizada ☁️');
+}
+
+async function forzarSync() {
+  showToast('🔄 Sincronizando...', 'var(--yellow)');
+  await syncLoad();
+  render();
+  showToast('✅ Sincronización completa');
+}
+
+// ===================== IMPRIMIR =====================
+function imprimirBoleta(id) {
+  const p = state.pedidos.find(x => x.id === id);
+  if (!p) return;
+  const c = state.config;
+  const sub = pedidoSubtotal(p), total = pedidoTotal(p);
+  document.getElementById('boleta-print-area').innerHTML = `
+  <div class="bh"><h2>${c.empresa}</h2><p>RUC: ${c.ruc} | Tel: ${c.telefono}</p><p>${c.direccion}</p></div>
+  <div class="warning">⚠ NOTA DE PEDIDO — NO VÁLIDA COMO COMPROBANTE TRIBUTARIO</div>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+    <tr><td style="width:50%;padding:4px 0;font-size:12px"><strong>N° Pedido:</strong> ${p.id}</td><td style="padding:4px 0;font-size:12px"><strong>Fecha:</strong> ${fmtDate(p.fecha)}</td></tr>
+    <tr><td style="padding:4px 0;font-size:12px"><strong>Cliente:</strong> ${p.cliente.nombre}</td><td style="padding:4px 0;font-size:12px"><strong>Vendedor:</strong> ${c.vendedor}</td></tr>
+    ${p.cliente.ruc ? `<tr><td colspan="2" style="padding:4px 0;font-size:12px"><strong>RUC/DNI:</strong> ${p.cliente.ruc}</td></tr>` : ''}
+    ${p.cliente.direccion ? `<tr><td colspan="2" style="padding:4px 0;font-size:12px"><strong>Dirección entrega:</strong> ${p.cliente.direccion}</td></tr>` : ''}
+  </table>
+  <table><thead><tr><th>Cód.</th><th>Descripción</th><th>Unid.</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead>
+  <tbody>${p.items.map(i => `<tr><td>${i.prodId}</td><td>${i.nombre}</td><td>${i.unidad}</td><td style="text-align:center">${i.cantidad}</td><td style="text-align:right">S/ ${i.precio.toFixed(2)}</td><td style="text-align:right">S/ ${(i.precio*i.cantidad).toFixed(2)}</td></tr>`).join('')}</tbody></table>
+  <div class="clearfix"><div class="totals"><table>
+    <tr><td>Subtotal:</td><td style="text-align:right">S/ ${sub.toFixed(2)}</td></tr>
+    ${p.descuento ? `<tr><td>Descuento:</td><td style="text-align:right">− S/ ${parseFloat(p.descuento).toFixed(2)}</td></tr>` : ''}
+    <tr class="grand"><td><strong>TOTAL:</strong></td><td style="text-align:right"><strong>S/ ${total.toFixed(2)}</strong></td></tr>
+  </table></div></div>
+  ${p.notas ? `<p style="margin-top:60px;font-size:11px"><strong>Notas:</strong> ${p.notas}</p>` : ''}
+  <div class="firma"><div>Firma del cliente</div><div>Firma del vendedor<br><small>${c.vendedor}</small></div></div>
+  <div class="footer-note">${c.pieBoleta}</div>`;
+  window.print();
+}
+
+// ===================== INIT =====================
+syncLoad();
+</script>
+</body>
+</html>
